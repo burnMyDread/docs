@@ -1,2 +1,2 @@
 # docs
-Security awaremness docs
+Security awareness docs
