@@ -55,19 +55,39 @@ This is where you should put the pricpal of least privilage in full force.
 Note: This documentassumes you have a working knowlage of [kernel pseudo filesystems](https://medium.com/@jain.sm/pseudo-file-systems-in-linux-5bf67eb6e450) and [mounts](https://www.computerhope.com/unix/umount.htm)
   
 - ProtectSystem
-    Takes a boolean argument or the special values "full" or "strict". If true, mounts the /usr/ and the boot loader directories (/boot and /efi) read-only for processes invoked by this unit. If set to "full", the /etc/ directory is mounted read-only, too. If set to "strict" the entire file system hierarchy is mounted read-only, except for the API file system subtrees /dev/, /proc/ and /sys/ (protect these directories using PrivateDevices=, ProtectKernelTunables=, ProtectControlGroups=). This setting ensures that any modification of the vendor-supplied operating system (and optionally its configuration, and local mounts) is prohibited for the service. It is recommended to enable this setting for all long-running services, unless they are involved with system updates or need to modify the operating system in other ways. If this option is used, ReadWritePaths= may be used to exclude specific directories from being made read-only. This setting is implied if DynamicUser= is set. This setting cannot ensure protection in all cases. In general it has the same limitations as ReadOnlyPaths=, see below. Defaults to off.
+    Takes a boolean argument or the special values "full" or "strict". If true, mounts the /usr/ and the boot loader directories (/boot and /efi) read-only for processes invoked by this unit. If set to "full", the /etc/ directory is mounted read-only, too. If set to "strict" the entire file system hierarchy is mounted read-only, except for the API file system subtrees /dev/, /proc/ and /sys/ (protect these directories using PrivateDevices=, ProtectKernelTunables=, ProtectControlGroups=). (Note: This is from the linked source.)
 - ProtectProc
     This limits access to the golbal proc peudofilesystem which hash process information for the whole system by default. This can be limied to just the process table for the process.
 - ProtectHome
     This will make user home accounts show up as empty. This relies on umount not being avalible to the process.
+
+[source](https://www.freedesktop.org/software/systemd/man/systemd.exec.html)
   
 ### Process Isolation
   
 - Namespace isolation
   Namespaces allow limiting what processes can view the other processes in a namespace via kernel options. This means that if a process does ps or tries to ptrace it will only see processes in its namespace.
 - LimitX
-  This sets ulimits which are not set by default except for user processes.
+  This sets ulimits which are not set by default except for user processes. (In relatiy this is anything that sources the shell profile.)
 - ProtectProc
-  This limits access to the default proc filesystem.
+  This limits access to the default proc filesystem. This is useful in that it limits the process information that a process can access. This is useful in the container space as it limits what a contianer can do in the case of a breakout.
+- ReadWritePaths, ReadOnlyPaths, InaccessiblePaths, ExecPaths, NoExecPaths
+  These allow for fine grained access controls beyond Descretionary Access Controls. You can use these to further spesifiy what access a process has on the host filesystem.
+- ProtectClock
+  This protects the system clock from being set by the process. If this is unset or set to false a malicous process can change the system time to break tls.
+- ProtectKernelModules
+  This stops the process from loading kernel modules. This should almost always be set to true.
+- MemoryDenyWriteExecute
+  This is a bufferoverflow protection. This should almost always be set to true.
 
+[source](https://www.freedesktop.org/software/systemd/man/systemd.exec.html)
+  
 ### Misc.
+
+- NoNewPrivileges
+  This blocks processes from becoming root.
+- SELinuxContext, AppArmorProfile, SmackProcessLabel
+  These force the process into the coresponding Mandiory Access Control label. This can be used to either further isolate a process or disable the labeling in a targeted fashion.
+- KeyringMode
+  This is an isolation feature for the system keyring, the two main usecases are: If you want your process to keep its keys out of the system keyring. (Becuase you are doing something sensitive.) Or you are running an untrusted or less sensitive process on a host with sensitive processes.
+  
